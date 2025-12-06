@@ -1,0 +1,144 @@
+import React, { useState, useEffect } from 'react';
+
+const API_BASE = 'https://api.squiggle.com.au';
+const NUMBERS_PER_POOL = 100; // 1-100
+const PRICES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const SEASON_YEAR = 2026; // Updated for 2026 season
+
+function App() {
+  const [games, setGames] = useState([]);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [userTickets, setUserTickets] = useState([]);
+  const [results, setResults] = useState({});
+
+  // Load user tickets from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('sportsMarginsTickets');
+    if (stored) setUserTickets(JSON.parse(stored));
+  }, []);
+
+  // Save tickets to localStorage
+  const saveTickets = (newTickets) => {
+    setUserTickets(newTickets);
+    localStorage.setItem('sportsMarginsTickets', JSON.stringify(newTickets));
+  };
+
+  // Fetch upcoming games for 2026
+  useEffect(() => {
+    fetch(`${API_BASE}/?q=games;year=${SEASON_YEAR};complete=0`)
+      .then(res => res.json())
+      .then(data => setGames(data.games || []))
+      .catch(console.error);
+  }, []);
+
+  // Buy ticket
+  const buyTicket = (gameId, price) => {
+    const newTicket = {
+      id: Date.now(),
+      gameId,
+      price,
+      number: assignRandomNumber(gameId, price),
+      boughtAt: new Date().toISOString()
+    };
+    const updatedTickets = [...userTickets, newTicket];
+    saveTickets(updatedTickets);
+    alert(`Ticket bought! Your number: ${newTicket.number} ($${price})`);
+  };
+
+  // Assign random available number (mock DB: track taken per pool)
+  const assignRandomNumber = (gameId, price) => {
+    const poolKey = `${gameId}-${price}`;
+    const taken = JSON.parse(localStorage.getItem(poolKey) || '[]');
+    const available = Array.from({length: NUMBERS_PER_POOL}, (_, i) => i + 1)
+      .filter(n => !taken.includes(n));
+    if (available.length === 0) throw new Error('Pool sold out!');
+    const randomNum = available[Math.floor(Math.random() * available.length)];
+    taken.push(randomNum);
+    localStorage.setItem(poolKey, JSON.stringify(taken));
+    return randomNum;
+  };
+
+  // Get sold count for pool
+  const getSoldCount = (gameId, price) => {
+    const poolKey = `${gameId}-${price}`;
+    const taken = JSON.parse(localStorage.getItem(poolKey) || '[]');
+    return taken.length;
+  };
+
+  // Fetch result for a game (updated for 2026)
+  const fetchResult = (game) => {
+    fetch(`${API_BASE}/?q=games;game=${game.id};year=${SEASON_YEAR}`)
+      .then(res => res.json())
+      .then(data => {
+        const g = data.games[0];
+        if (g.complete === 100) {
+          const margin = Math.abs(g.hscore - g.ascore);
+          const winnerPool = userTickets.find(t => t.gameId === g.id && t.number === margin);
+          setResults(prev => ({...prev, [g.id]: {margin, winner: winnerPool ? `You won $${winnerPool.price * NUMBERS_PER_POOL}!` : 'No winner yet.'}}));
+        } else {
+          alert('Game not finished yet!');
+        }
+      })
+      .catch(console.error);
+  };
+
+  return (
+    <div className="container">
+      <h1>Sports Margins 🏈 - 2026 Season</h1>
+      <p>Buy unique margin predictions for AFL games. Win the pot if you match!</p>
+
+      <section>
+        <h2>Upcoming 2026 Games</h2>
+        {games.length === 0 ? <p>Loading games...</p> : (
+          <ul>
+            {games.map(game => (
+              <li key={game.id}>
+                <strong>{game.hteam.name} vs {game.ateam.name}</strong> - {game.round.name}, {new Date(game.date).toLocaleDateString()}
+                <button onClick={() => setSelectedGame(game.id)}>View Pools</button>
+                {results[game.id] && <p>Result: Margin {results[game.id].margin} | {results[game.id].winner}</p>}
+                <button onClick={() => fetchResult(game)}>Check Result</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {selectedGame && (
+        <section>
+          <h2>Pools for Selected Game</h2>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px'}}>
+            {PRICES.map(price => {
+              const sold = getSoldCount(selectedGame, price);
+              return (
+                <div key={price} style={{border: '1px solid #ccc', padding: '10px', textAlign: 'center'}}>
+                  <h3>${price} Pool</h3>
+                  <p>Pot: ${price * NUMBERS_PER_POOL}</p>
+                  <p>Sold: {sold}/{NUMBERS_PER_POOL}</p>
+                  <button onClick={() => buyTicket(selectedGame, price)} disabled={sold >= NUMBERS_PER_POOL}>
+                    Buy Random (${price})
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <button onClick={() => setSelectedGame(null)}>Back to Games</button>
+        </section>
+      )}
+
+      <section>
+        <h2>Your Tickets</h2>
+        {userTickets.length === 0 ? <p>No tickets yet!</p> : (
+          <ul>
+            {userTickets.map(ticket => (
+              <li key={ticket.id}>
+                Game {ticket.gameId} | ${ticket.price} | Number: {ticket.number}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export default App;
