@@ -1,21 +1,40 @@
-{
-  "name": "sports-margins",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.3.1"
-  }
-}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sports Margins - AFL 2026</title>
+    <style>
+      body { 
+        font-family: Arial, sans-serif; 
+        margin: 0; 
+        padding: 20px; 
+        background: #f0f0f0; 
+      } 
+      .container { 
+        max-width: 800px; 
+        margin: 0 auto; 
+      }
+      button { 
+        background: #007bff; 
+        color: white; 
+        border: none; 
+        padding: 8px 12px; 
+        margin: 5px; 
+        cursor: pointer; 
+        border-radius: 4px; 
+      }
+      button:disabled { 
+        background: #ccc; 
+        cursor: not-allowed; 
+      }
+      ul { list-style: none; padding: 0; }
+      li { margin: 10px 0; padding: 10px; background: white; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
